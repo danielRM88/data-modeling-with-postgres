@@ -6,6 +6,14 @@ from sql_queries import *
 
 
 def process_song_file(cur, filepath):
+    """
+    - Reads a song metadata file from path
+
+    - Extracts songs and artists required fields
+
+    - Stores the data in their respective tables
+    """
+
     # open song file
     df = pd.read_json(filepath, lines=True)
 
@@ -19,6 +27,28 @@ def process_song_file(cur, filepath):
 
 
 def process_log_file(cur, filepath):
+    """
+    - Reads user activity log file from path
+
+    - Parses and transforms start date timestamp values
+
+    - Saves pandas data frame with time data to csv
+
+    - Executes postgres COPY command to read file and insert all records in bulk
+
+    - Extracts user information into pandas data frame
+
+    - Saves pandas data frame with user data to csv
+
+    - Executes postgres COPY command to read file and insert all records in bulk
+
+    - Reads songpplay information and for each record finds the associated song and artist
+
+    - This is saved in a pandas data frame which is saved as csv
+
+    - Executes postgres COPY command to read file and insert all records in bulk
+    """
+
     # open log file
     df = pd.read_json(filepath, lines=True)
 
@@ -33,10 +63,6 @@ def process_log_file(cur, filepath):
     column_labels = ('start_time', 'hour', 'day', 'week', 'month', 'year', 'weekday')
     time_df = pd.DataFrame(list(zip(*time_data)), columns=column_labels)
 
-    # individual insert for each row
-    # for i, row in time_df.iterrows():
-    #     cur.execute(time_table_insert, list(row))
-
     # insert in bulk using the postgres COPY command
     time_df.to_csv('./time_tmp.csv', index=False, header=False)
     cur.execute(time_table_copy_insert, ('/home/workspace/time_tmp.csv',))
@@ -44,15 +70,11 @@ def process_log_file(cur, filepath):
     # load user table
     user_df = df[['userId', 'firstName', 'lastName', 'gender', 'level']]
 
-    # insert user records
-    # for i, row in user_df.iterrows():
-    #     cur.execute(user_table_insert, row)
-
     # insert in bulk using the postgres COPY command
     user_df.to_csv('./users_tmp.csv', index=False, header=False)
     cur.execute(users_table_copy_insert, ('/home/workspace/users_tmp.csv',))
 
-    songplay_df = []#pd.DataFrame([], columns=["start_time", "user_id", "level", "song_id", "artist_id", "session_id", "location", "user_agent"])
+    songplay_df = []
     # insert songplay records
     for index, row in df.iterrows():
         
@@ -65,11 +87,6 @@ def process_log_file(cur, filepath):
         else:
             songid, artistid = None, None
 
-        # insert songplay record
-        # songplay_data = (pd.to_datetime(row.ts, unit='ms'), row.userId, row.level, songid, artistid, row.sessionId, row.location, row.userAgent)
-        # cur.execute(songplay_table_insert, songplay_data)
-        
-#         songplay_df = songplay_df.append(pd.DataFrame([pd.to_datetime(row.ts, unit='ms'), row.userId, row.level, songid, artistid, row.sessionId, row.location, row.userAgent]).T)
         songplay_df.append([pd.to_datetime(row.ts, unit='ms'), row.userId, row.level, songid, artistid, row.sessionId, row.location, row.userAgent])
 
     songplay_df = pd.DataFrame(songplay_df)
@@ -77,6 +94,10 @@ def process_log_file(cur, filepath):
     cur.execute(songplay_table_copy_insert, ('/home/workspace/songplay_tmp.csv',))
 
 def process_data(cur, conn, filepath, func):
+    """
+    Process all files in a given directory with the specified function
+    """
+
     # get all files matching extension from directory
     all_files = []
     for root, dirs, files in os.walk(filepath):
@@ -96,6 +117,13 @@ def process_data(cur, conn, filepath, func):
 
 
 def main():
+    """
+    - Grabs database connection
+
+    - Process all files in the data/song_data directory with the process_song_files function
+
+    - Process all files in the data/log_data directory with the process_log_files function
+    """
     conn = psycopg2.connect("host=127.0.0.1 dbname=sparkifydb user=student password=student")
     cur = conn.cursor()
 

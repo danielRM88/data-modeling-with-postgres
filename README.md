@@ -39,6 +39,10 @@ The previous points provide the foundation for how the schema will look. Using t
   3. `users` stores the data about users. The columns are: `user_id, first_name, last_name, gender, level`
   4. `time` breaksdown the start_time timestamp in the `songplays` table to prevent having to perform expensive timestamp operations in the column at query time. Columns: `start_time, hour, day, week, month, year, weekday`
 
+Here is the entity relational diagram:
+
+![ERD](erd.png)
+
 The data to be used in the project comes from different log files. The following are examples of the format of the files:
 
 - Song metadata files:
